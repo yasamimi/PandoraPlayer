@@ -41,18 +41,28 @@ class Song {
             return
         }
         let fileUrl = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("\(item.persistentID)_exported.m4a")
-        try? FileManager.default.removeItem(at: fileUrl)
-        let exportSession = AVAssetExportSession(asset: AVAsset(url: url), presetName: AVAssetExportPresetAppleM4A)
-        exportSession?.shouldOptimizeForNetworkUse = true
-        exportSession?.outputFileType = AVFileType.m4a
-        exportSession?.outputURL = fileUrl
+        let filePath = NSTemporaryDirectory() + "/\(item.persistentID)_exported.m4a"
         
-        exportSession?.exportAsynchronously(completionHandler: {
+        if (FileManager.default.fileExists(atPath: filePath)) {
             DispatchQueue.main.async(execute: {
                 song.url = fileUrl
                 completion?(song)
             })
-        })
+        } else {
+            try? FileManager.default.removeItem(at: fileUrl)
+            
+            let exportSession = AVAssetExportSession(asset: AVAsset(url: url), presetName: AVAssetExportPresetAppleM4A)
+            exportSession?.shouldOptimizeForNetworkUse = true
+            exportSession?.outputFileType = AVFileType.m4a
+            exportSession?.outputURL = fileUrl
+            
+            exportSession?.exportAsynchronously(completionHandler: {
+                DispatchQueue.main.async(execute: {
+                    song.url = fileUrl
+                    completion?(song)
+                })
+            })
+        }
         
         song.metadata = MetaData(withMPMediaItem: item)
     }
